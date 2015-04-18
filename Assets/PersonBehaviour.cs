@@ -73,7 +73,8 @@ public class PersonBehaviour : MonoBehaviour
 
         if (_goal != null && MoveToGoal)
         {
-            transform.position += (_goal.transform.position - transform.position) * (Velocity * delta);
+            transform.position =
+                Vector3.MoveTowards(transform.position, _goal.transform.position, Velocity * delta);
         }
     }
 
