@@ -1,27 +1,32 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 
 public class PersonBehaviour : MonoBehaviour
 {
-    public GameObject _goal;
+    private Stack<DesireBehaviour> _desireStack = new Stack<DesireBehaviour>();
+    private Rigidbody2D _rigidBody;
+
+    public DesireBehaviour CurrentDesire = null;
+    public GameObject Goal = null;
     public bool MoveToGoal = false;
     public bool Alive = true;
-    public bool Eating = false;
-    public float Hunger = 0.75f;
-    public float HungerRate = -0.01f;
-    public bool Drinking = false;
-    public float Thirst = 0.75f;
-    public float ThirstRate = -0.05f;
-    public float Sanity = 0.75f;
-    public float SanityRate = -0.07f;
-    public float Energy = 1.0f;
-    public float EnergyRate = -0.01f;
     public float Health = 1.0f;
-    public float HealthRate = -0.1f;
     public float Velocity = 0.0f;
+    public float TEMPVelocity = 0.0f;
+    public Vector2 TEMPGoalPosition;
+    public Vector2 TEMPRealGoalPosition;
+    public Vector2 TEMPCalculatedGoalPosition;
+    public float Acceleration = 4.0f;
+    public float AngularVelocity = 1.25f; // rad/s^2
+    public float AngularAcceleration = 1.25f; // rad/s^2
+    public float TEMPAngularVelocity = 0.0f;
+    public float Stubborness = 0.03f;
 
     void Start()
     {
+        _rigidBody = GetComponent<Rigidbody2D>();
     }
 
     void FixedUpdate()
@@ -32,36 +37,44 @@ public class PersonBehaviour : MonoBehaviour
         }
 
         float delta = Time.fixedDeltaTime;
-        Hunger = AdjustStatistic(delta, Eating ? 0.1f : HungerRate, Hunger);
-        Thirst = AdjustStatistic(delta, Drinking ? 0.1f : ThirstRate, Thirst);
 
-        if (_goal == null && !Drinking && Thirst <= 0.4f)
+        if (CurrentDesire != null && CurrentDesire.DesireValue >= CurrentDesire.DesireMax)
         {
-            _goal = GameObject.FindGameObjectWithTag("Water");
-            MoveToGoal = true;
-        }
-        else if (Drinking && Thirst >= 1.0f)
-        {
-            Drinking = false;
-            _goal = null;
+            CurrentDesire = _desireStack.Count > 0 ? _desireStack.Pop() : null;
+            Goal = null;
             MoveToGoal = false;
         }
 
-        if (_goal == null && !Eating && Hunger <= 0.4f)
+        DesireBehaviour maxDesire = GetComponents<DesireBehaviour>()
+            .Where(d => d.Utility > 0.0f)
+            .OrderByDescending(d => d.Utility)
+            .FirstOrDefault();
+        if (maxDesire == null)
         {
-            _goal = GameObject.FindGameObjectWithTag("Food");
-            MoveToGoal = true;
+            if (CurrentDesire != null)
+            {
+                Debug.LogWarning("Was holding on to an old desire.");
+                CurrentDesire = null;
+            }
         }
-        else if (Eating && Hunger >= 1.0f)
+        else if (CurrentDesire == null)
         {
-            Eating = false;
-            _goal = null;
-            MoveToGoal = false;
+            CurrentDesire = maxDesire;
+        }
+        else if (maxDesire.Utility >= CurrentDesire.Utility + Stubborness)
+        {
+            _desireStack.Push(CurrentDesire);
+            CurrentDesire = maxDesire;
         }
 
-        if (Hunger <= 0.0f || Thirst <= 0.0f)
+        if (CurrentDesire != null)
         {
-            Health = AdjustStatistic(delta, HealthRate, Health);
+            GameObject nextGoal = GameObject.FindGameObjectWithTag(CurrentDesire.DesireTag);
+            if (nextGoal != Goal)
+            {
+                Goal = nextGoal;
+                MoveToGoal = true;
+            }
         }
 
         if (Health <= 0.0f)
@@ -71,45 +84,64 @@ public class PersonBehaviour : MonoBehaviour
             Debug.LogFormat("Person {0} died!", name);
         }
 
-        if (_goal != null && MoveToGoal)
+        TEMPAngularVelocity = _rigidBody.angularVelocity;
+
+        if (Goal != null && MoveToGoal && Velocity > 0.0f)
         {
-            transform.position =
-                Vector3.MoveTowards(transform.position, _goal.transform.position, Velocity * delta);
+            Vector2 currentPosition = transform.position;
+            Vector2 desiredPosition = Goal.GetComponent<Collider2D>().bounds.ClosestPoint(currentPosition);
+            TEMPRealGoalPosition = desiredPosition;
+            Vector2 localDesiredPosition = _rigidBody.GetPoint(desiredPosition);
+            TEMPGoalPosition = localDesiredPosition;
+            TEMPCalculatedGoalPosition = _rigidBody.GetRelativePoint(localDesiredPosition);
+
+            float stoppingDistance = Mathf.Pow(Velocity, 2.0f) / Acceleration;
+            Vector2 desiredVelocity = Vector2.up * Velocity * Mathf.Sign(localDesiredPosition.y);
+            desiredVelocity *= Mathf.Min(1.0f, Mathf.Abs(localDesiredPosition.y) / stoppingDistance);
+
+            Vector2 currentVelocity = _rigidBody.velocity;
+            Vector2 localVelocity = _rigidBody.GetVector(currentVelocity);
+            TEMPVelocity = localVelocity.y;
+            float velocityDelta = desiredVelocity.y - localVelocity.y;
+            float currentSpeed = localVelocity.magnitude;
+            if (currentSpeed + velocityDelta < 0.0f)
+            {
+                velocityDelta = -currentSpeed;
+            }
+
+            float desiredAcceleration = velocityDelta / delta;
+            if (Mathf.Abs(desiredAcceleration) > Acceleration)
+            {
+                desiredAcceleration = Mathf.Sign(desiredAcceleration) * Acceleration;
+            }
+
+            Vector2 localForce = Vector2.up * _rigidBody.mass * desiredAcceleration;
+            Vector2 force = _rigidBody.GetRelativeVector(localForce);
+            _rigidBody.AddForce(force, ForceMode2D.Force);
+
+            Vector2 normalizedLocalDesiredPosition = localDesiredPosition.normalized;
+            float directionToTurn = Mathf.Sign(Vector3.Cross(Vector2.up, normalizedLocalDesiredPosition).z);
+            float distanceToTurn = Vector2.Angle(Vector2.up, normalizedLocalDesiredPosition) * Mathf.Deg2Rad * directionToTurn;
+            float angularStoppingDistance = Mathf.Pow(AngularVelocity, 2.0f) / AngularAcceleration;
+            float desiredAngularVelocity = Mathf.Sign(distanceToTurn) * AngularVelocity;
+            desiredAngularVelocity *= Mathf.Min(1.0f, Mathf.Abs(distanceToTurn) / angularStoppingDistance);
+
+            float currentAngularVelocity = _rigidBody.angularVelocity * Mathf.Deg2Rad;
+            float desiredAngularAcceleration = (desiredAngularVelocity - currentAngularVelocity) / delta;
+            if (Mathf.Abs(desiredAngularAcceleration) > AngularAcceleration)
+            {
+                desiredAngularAcceleration = Mathf.Sign(desiredAngularAcceleration) * AngularAcceleration;
+            }
+            float torque = desiredAngularAcceleration * _rigidBody.mass * 0.5f;
+            _rigidBody.AddTorque(torque, ForceMode2D.Force);
         }
     }
 
-    void OnTriggerStay2D(Collider2D collider)
+    void OnCollisionStay2D(Collision2D collision)
     {
-        if (collider.gameObject == _goal)
+        if (collision.gameObject == Goal)
         {
             MoveToGoal = false;
-
-            if (collider.gameObject.tag.Equals("Water"))
-            {
-                Drinking = true;
-            }
-
-            if (collider.gameObject.tag.Equals("Food"))
-            {
-                Debug.LogFormat("Started eating at: {0}", Time.fixedTime);
-                Eating = true;
-            }
         }
-    }
-
-    private float AdjustStatistic(float delta, float rate, float currentValue)
-    {
-        float nextValue = currentValue + (rate * delta);
-
-        if (nextValue < 0.0f)
-        {
-            nextValue = 0.0f;
-        }
-        else if (nextValue > 1.0f)
-        {
-            nextValue = 1.0f;
-        }
-
-        return nextValue;
     }
 }

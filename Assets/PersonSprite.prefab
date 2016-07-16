@@ -11,7 +11,9 @@ GameObject:
   - 212: {fileID: 21268226}
   - 114: {fileID: 11448192}
   - 50: {fileID: 5021680}
-  - 61: {fileID: 6106120}
+  - 58: {fileID: 5817092}
+  - 114: {fileID: 11468666}
+  - 114: {fileID: 11489934}
   m_Layer: 0
   m_Name: PersonSprite
   m_TagString: Person
@@ -37,28 +39,28 @@ Rigidbody2D:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 182484}
-  m_Mass: 1
+  m_Mass: 70
   m_LinearDrag: 0
   m_AngularDrag: .0500000007
   m_GravityScale: 1
   m_FixedAngle: 0
-  m_IsKinematic: 1
+  m_IsKinematic: 0
   m_Interpolate: 0
   m_SleepingMode: 1
   m_CollisionDetection: 1
---- !u!61 &6106120
-BoxCollider2D:
+--- !u!58 &5817092
+CircleCollider2D:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 182484}
   m_Enabled: 1
   m_Material: {fileID: 0}
-  m_IsTrigger: 1
+  m_IsTrigger: 0
   m_UsedByEffector: 0
-  m_Offset: {x: .00380635262, y: .0045658052}
+  m_Offset: {x: 0, y: 0}
   serializedVersion: 2
-  m_Size: {x: .258461922, y: .527314782}
+  m_Radius: .319999993
 --- !u!114 &11448192
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -70,22 +72,65 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d507dba39590ae43bddeda5ce38e860, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _goal: {fileID: 0}
+  CurrentDesire: {fileID: 0}
+  Goal: {fileID: 0}
   MoveToGoal: 0
   Alive: 1
-  Eating: 0
-  Hunger: .75
-  HungerRate: -.00999999978
-  Drinking: 0
-  Thirst: .75
-  ThirstRate: -.0500000007
-  Sanity: .75
-  SanityRate: -.0700000003
-  Energy: 1
-  EnergyRate: -.00999999978
   Health: 1
-  HealthRate: -.100000001
   Velocity: 0
+  TEMPVelocity: 0
+  TEMPGoalPosition: {x: 0, y: 0}
+  TEMPRealGoalPosition: {x: 0, y: 0}
+  TEMPCalculatedGoalPosition: {x: 0, y: 0}
+  Acceleration: 8
+  AngularVelocity: 1.25
+  AngularAcceleration: 5
+  TEMPAngularVelocity: 0
+  Stubborness: .0299999993
+--- !u!114 &11468666
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 182484}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f8ec93c27d2a3d459d21f3d2713c105, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DesireName: Thirst
+  DesireTag: Water
+  DesireValue: .75
+  DesireMax: 1
+  DesireSeekThreshold: .400000006
+  DesireMin: 0
+  DesireRate: -.0500000007
+  SatisfactionRate: .100000001
+  DesireWeight: 1
+  Satisfying: 0
+  HealthPenalty: -.5
+--- !u!114 &11489934
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 182484}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f8ec93c27d2a3d459d21f3d2713c105, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DesireName: Hunger
+  DesireTag: Food
+  DesireValue: .75
+  DesireMax: 1
+  DesireSeekThreshold: .400000006
+  DesireMin: 0
+  DesireRate: -.0500000007
+  SatisfactionRate: .100000001
+  DesireWeight: 1
+  Satisfying: 0
+  HealthPenalty: -.5
 --- !u!212 &21268226
 SpriteRenderer:
   m_ObjectHideFlags: 1
@@ -110,7 +155,7 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: 9e274fc5bbddc2d4eb96e133418fe61c, type: 3}
+  m_Sprite: {fileID: 21300000, guid: b8a8c384b2d88334eaccdfa6b888d61c, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
 --- !u!1001 &100100000
 Prefab:

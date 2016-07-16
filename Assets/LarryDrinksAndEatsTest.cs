@@ -7,24 +7,27 @@ using System.Linq;
 public class LarryDrinksAndEatsTest : MonoBehaviour
 {
     private GameObject _target;
-    private PersonBehaviour _targetBehaviour;
+    private DesireBehaviour _targetThirst;
+    private DesireBehaviour _targetHunger;
     private bool _hasDrank = false;
     private bool _hasEaten = false;
 
     void Start()
     {
         _target = GameObject.FindGameObjectsWithTag("Person").First(p => p.name == "Larry");
-        _targetBehaviour = _target.GetComponent<PersonBehaviour>();
+        var desires = _target.GetComponents<DesireBehaviour>();
+        _targetThirst = desires.First(d => d.DesireName.Equals("Thirst"));
+        _targetHunger = desires.First(d => d.DesireName.Equals("Hunger"));
     }
 
     void Update()
     {
-        if (_targetBehaviour.Drinking)
+        if (_targetThirst.Satisfying)
         {
             _hasDrank = true;
         }
 
-        if (_targetBehaviour.Eating)
+        if (_targetHunger.Satisfying)
         {
             _hasEaten = true;
         }
